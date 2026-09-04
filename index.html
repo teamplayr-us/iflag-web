@@ -9,14 +9,14 @@
 <meta property="og:description" content="Be the first to get notified when registration opens Sept 16 at 7pm ET.">
 <!-- OG IMAGE: og.jpg deploys alongside this file at the site root. -->
 <meta property="og:url" content="https://iflag-web.vercel.app/">
-<meta property="og:image" content="https://iflag-web.vercel.app/og.jpg?v=2">
+<meta property="og:image" content="https://iflag-web.vercel.app/og.jpg?v=3">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Youth Waitlist — CFP Flag Football Showcase">
 <meta name="twitter:description" content="Be the first to get notified when registration opens Sept 16 at 7pm ET.">
-<meta name="twitter:image" content="https://iflag-web.vercel.app/og.jpg?v=2">
+<meta name="twitter:image" content="https://iflag-web.vercel.app/og.jpg?v=3">
 <link rel="canonical" href="https://iflag-web.vercel.app/">
 <link rel="icon" href="https://iflag.org/wp-content/uploads/2020/04/favicon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -241,12 +241,13 @@
 
 <script>
 /* ============================================================
-   CONFIG — paste your automation endpoint here.
-   Works with: a Make.com "Custom webhook" URL, a Zapier
-   "Catch Hook" URL, or any endpoint accepting a JSON POST.
+   Signups POST here, to the serverless function in /api, which
+   writes them to the Event Waitlist table in the 5v5 Sports
+   Airtable base. The Airtable token lives in the AIRTABLE_TOKEN
+   environment variable on Vercel and never reaches the browser.
    Leave blank ("") for demo mode (shows success, sends nothing).
    ============================================================ */
-const WAITLIST_ENDPOINT = "";
+const WAITLIST_ENDPOINT = "/api/waitlist";
 
 const OPEN_AT_UTC = Date.UTC(2026, 8, 16, 23, 0, 0); // Sept 16, 2026, 7:00 PM ET
 

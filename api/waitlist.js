@@ -30,7 +30,7 @@ const F = {
  * these lists is dropped rather than sent on: we deliberately do not pass
  * typecast to Airtable, so a tampered payload can never mint new select
  * options in the base. */
-const AGE_GROUPS = ['8U', '10U', '12U', '14U', 'High School'];
+const AGE_GROUPS = ['8U', '10U', '12U', '14U', '16U', '18U'];
 const GENDERS    = ['Boys', 'Girls'];
 const ROLES      = ['Coach / Team manager', 'Organization / Club director', 'Other'];
 

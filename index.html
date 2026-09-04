@@ -241,12 +241,13 @@
 
 <script>
 /* ============================================================
-   CONFIG — paste your automation endpoint here.
-   Works with: a Make.com "Custom webhook" URL, a Zapier
-   "Catch Hook" URL, or any endpoint accepting a JSON POST.
+   Signups POST here, to the serverless function in /api, which
+   writes them to the Event Waitlist table in the 5v5 Sports
+   Airtable base. The Airtable token lives in the AIRTABLE_TOKEN
+   environment variable on Vercel and never reaches the browser.
    Leave blank ("") for demo mode (shows success, sends nothing).
    ============================================================ */
-const WAITLIST_ENDPOINT = "";
+const WAITLIST_ENDPOINT = "/api/waitlist";
 
 const OPEN_AT_UTC = Date.UTC(2026, 8, 16, 23, 0, 0); // Sept 16, 2026, 7:00 PM ET
 

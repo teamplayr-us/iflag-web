@@ -1,0 +1,9 @@
+{
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/cfp-waitlist",
+      "permanent": false
+    }
+  ]
+}

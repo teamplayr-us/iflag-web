@@ -107,7 +107,7 @@ function confirmationEmail(s) {
       <div style="font-size:18px;font-weight:bold;color:${NAVY};padding-top:4px">${OPENS_WHEN}</div>
     </td></tr>
   </table>
-  <p style="margin:0 0 18px;font-size:15px;line-height:1.55">We'll email you the moment it does.${s.optInSms ? ' You\u2019ll get the opening-day text as well.' : ''}</p>
+  <p style="margin:0 0 18px;font-size:15px;line-height:1.55">We'll email you the moment it does.</p>
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid ${LINE};margin:0 0 18px">
     ${row('Event', EVENT_NAME)}${row('Dates', EVENT_WHEN)}${teams ? row('Your teams', esc(teams)) : ''}
   </table>
@@ -122,7 +122,7 @@ Thanks, ${s.firstName} — ${s.club} is on the youth waitlist for the ${EVENT_NA
 REGISTRATION OPENS
 ${OPENS_WHEN}
 
-We'll email you the moment it does.${s.optInSms ? ' You\u2019ll get the opening-day text as well.' : ''}
+We'll email you the moment it does.
 
 Event: ${EVENT_NAME}
 Dates: ${EVENT_WHEN}${teams ? `\nYour teams: ${teams}` : ''}

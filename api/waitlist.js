@@ -1,14 +1,27 @@
-/* Waitlist intake: browser -> this function -> Airtable.
+/* Waitlist intake: browser -> this function -> Airtable, then email.
  *
- * The Airtable token lives only in the AIRTABLE_TOKEN environment variable on
- * the server. It must never reach the client, which is the whole reason the
- * page posts here instead of talking to Airtable directly.
+ * The Airtable and MailerSend tokens live only in environment variables on the
+ * server. They must never reach the client, which is the whole reason the page
+ * posts here instead of talking to either service directly.
+ *
+ * Environment:
+ *   AIRTABLE_TOKEN      required. Scoped to the 5v5 Sports base, data.records:write.
+ *   MAILERSEND_API_KEY  optional. Without it, signups still save; no mail is sent.
+ *   TEAM_NOTIFY_EMAILS  optional. Comma-separated internal recipients.
+ *   MAIL_FROM           optional. Defaults to waitlist@iflagyouth.com.
  */
 
 const AIRTABLE_API = 'https://api.airtable.com/v0';
 const BASE_ID  = 'appbmlh3CKFrW6c72'; // 5v5 Sports
 const TABLE_ID = 'tblSb2l8EX6ZVX90M'; // Event Waitlist
 const EVENT_ID = 'rec9KkRfpBA6Jil6N'; // Event Inventory -> CFP Flag Football Showcase
+
+const MAILERSEND_API = 'https://api.mailersend.com/v1/email';
+const REPLY_TO   = 'support@iflagyouth.com';
+const SITE       = 'https://iflagyouth.com';
+const EVENT_NAME = 'CFP Flag Football Showcase';
+const EVENT_WHEN = 'January 22–24, 2027 · Las Vegas, NV';
+const OPENS_WHEN = 'Wednesday, September 16 at 7:00 PM ET';
 
 /* Keyed by field ID, following the convention the other 5v5/CFSS intake tables
  * use: fields can be renamed in Airtable without breaking this endpoint. */
@@ -34,8 +47,98 @@ const AGE_GROUPS = ['8U', '10U', '12U', '14U', '16U', '18U'];
 const GENDERS    = ['Boys', 'Girls'];
 const ROLES      = ['Coach / Team manager', 'Organization / Club director', 'Other'];
 
+const NAVY = '#19344b', CRIMSON = '#b3202e', DIM = '#5a6b7a', LINE = '#dfe4e8';
+
 const str  = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 const pick = (v, allowed) => (Array.isArray(v) ? v.filter(x => allowed.includes(x)) : []);
+
+/* Submissions are attacker-controlled and land inside HTML mail. Escape every
+ * interpolated value so a club name can never inject markup into an inbox. */
+const esc = s => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+async function sendEmail({ apiKey, to, subject, html, text, replyTo }) {
+  const from = process.env.MAIL_FROM || 'waitlist@iflagyouth.com';
+  const r = await fetch(MAILERSEND_API, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: { email: from, name: 'iFlag Youth' },
+      to,
+      ...(replyTo ? { reply_to: { email: replyTo, name: 'iFlag Youth' } } : {}),
+      subject, html, text,
+    }),
+  });
+  if (!r.ok) throw new Error(`MailerSend ${r.status}: ${await r.text()}`);
+}
+
+function confirmationEmail(s) {
+  const teams = [s.ageGroups.join(', '), s.genders.join(' & ')].filter(Boolean).join(' · ');
+  const html = `<div style="margin:0;padding:24px 12px;background:#f4f6f8;font-family:Helvetica,Arial,sans-serif">
+<div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid ${LINE};border-radius:8px;overflow:hidden">
+  <div style="padding:28px 28px 8px;text-align:center">
+    <img src="${SITE}/apple-touch-icon.png" width="72" height="72" alt="iFlag Youth" style="display:inline-block;border:0">
+  </div>
+  <div style="padding:8px 28px 28px;color:${NAVY}">
+    <h1 style="margin:0 0 6px;font-size:24px;line-height:1.2;text-transform:uppercase">You're on the list</h1>
+    <div style="height:2px;background:${CRIMSON};width:120px;margin:14px 0 18px"></div>
+    <p style="margin:0 0 14px;font-size:15px;line-height:1.55">Thanks, ${esc(s.firstName)} — ${esc(s.club)} is on the youth waitlist for the ${EVENT_NAME}.</p>
+    <p style="margin:0 0 6px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:${DIM}">Registration opens</p>
+    <p style="margin:0 0 18px;font-size:18px;font-weight:bold">${OPENS_WHEN}</p>
+    <p style="margin:0 0 18px;font-size:15px;line-height:1.55">We'll email you the moment it does. ${s.optInSms ? 'You’ll get the opening-day text as well.' : ''}</p>
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-top:1px solid ${LINE};margin:0 0 18px">
+      <tr><td style="padding:12px 0 4px;font-size:13px;color:${DIM}">Event</td><td style="padding:12px 0 4px;font-size:13px;text-align:right">${EVENT_NAME}</td></tr>
+      <tr><td style="padding:4px 0;font-size:13px;color:${DIM}">Dates</td><td style="padding:4px 0;font-size:13px;text-align:right">${EVENT_WHEN}</td></tr>
+      ${teams ? `<tr><td style="padding:4px 0;font-size:13px;color:${DIM}">Your teams</td><td style="padding:4px 0;font-size:13px;text-align:right">${esc(teams)}</td></tr>` : ''}
+    </table>
+    <p style="margin:0;font-size:13px;line-height:1.55;color:${DIM}">Joining the waitlist does not guarantee placement — spots are secured through registration once it opens. Questions? Reply to this email.</p>
+  </div>
+  <div style="background:${NAVY};color:rgba(255,255,255,.75);padding:16px 28px;font-size:12px;text-align:center">© 2026 International Flag League, LLC</div>
+</div></div>`;
+  const text = `You're on the list.
+
+Thanks, ${s.firstName} — ${s.club} is on the youth waitlist for the ${EVENT_NAME}.
+
+REGISTRATION OPENS
+${OPENS_WHEN}
+
+We'll email you the moment it does.${s.optInSms ? ' You’ll get the opening-day text as well.' : ''}
+
+Event: ${EVENT_NAME}
+Dates: ${EVENT_WHEN}${teams ? `\nYour teams: ${teams}` : ''}
+
+Joining the waitlist does not guarantee placement — spots are secured through
+registration once it opens. Questions? Reply to this email.
+
+© 2026 International Flag League, LLC`;
+  return { subject: `You're on the waitlist — ${EVENT_NAME}`, html, text };
+}
+
+function teamEmail(s, recordId) {
+  const link = recordId ? `https://airtable.com/${BASE_ID}/${TABLE_ID}/${recordId}` : null;
+  const rows = [
+    ['Name',        `${s.firstName} ${s.lastName}`],
+    ['Email',       s.email],
+    ['Phone',       s.phone || '—'],
+    ['Club / Org',  s.club],
+    ['Role',        s.role || '—'],
+    ['Age groups',  s.ageGroups.join(', ') || '—'],
+    ['Boys/Girls',  s.genders.join(', ') || '—'],
+    ['SMS opt-in',  s.optInSms ? 'Yes' : 'No'],
+  ];
+  const html = `<div style="font-family:Helvetica,Arial,sans-serif;color:${NAVY};max-width:560px">
+<h2 style="margin:0 0 4px;font-size:18px">New youth waitlist signup</h2>
+<p style="margin:0 0 16px;font-size:13px;color:${DIM}">${EVENT_NAME}</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px;border-collapse:collapse">
+${rows.map(([k, v]) => `<tr><td style="padding:7px 12px 7px 0;color:${DIM};white-space:nowrap;border-bottom:1px solid ${LINE}">${k}</td><td style="padding:7px 0;border-bottom:1px solid ${LINE}">${esc(v)}</td></tr>`).join('')}
+</table>
+${link ? `<p style="margin:18px 0 0;font-size:14px"><a href="${link}" style="color:${CRIMSON}">Open in Airtable →</a></p>` : ''}</div>`;
+  const text = `New youth waitlist signup — ${EVENT_NAME}\n\n`
+    + rows.map(([k, v]) => `${k}: ${v}`).join('\n')
+    + (link ? `\n\nOpen in Airtable: ${link}` : '');
+  return { subject: `New youth waitlist signup — ${s.club}`, html, text };
+}
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {
@@ -58,42 +161,48 @@ module.exports = async (req, res) => {
   // Honeypot: bots fill it, humans never see it. Accept silently so they don't retry.
   if (str(body.company, 100)) return res.status(200).json({ ok: true });
 
-  const firstName = str(body.first_name, 100);
-  const lastName  = str(body.last_name, 100);
-  const email     = str(body.email, 254).toLowerCase();
-  const club      = str(body.club_name, 200);
-  const role      = str(body.role, 100);
+  const s = {
+    firstName: str(body.first_name, 100),
+    lastName:  str(body.last_name, 100),
+    email:     str(body.email, 254).toLowerCase(),
+    club:      str(body.club_name, 200),
+    role:      str(body.role, 100),
+    phone:     str(body.phone, 40),
+    ageGroups: pick(body.age_groups, AGE_GROUPS),
+    genders:   pick(body.genders, GENDERS),
+    optInSms:  body.consent_sms === true,
+  };
 
   const missing = [];
-  if (!firstName) missing.push('first_name');
-  if (!lastName)  missing.push('last_name');
-  if (!email)     missing.push('email');
-  if (!club)      missing.push('club_name');
+  if (!s.firstName) missing.push('first_name');
+  if (!s.lastName)  missing.push('last_name');
+  if (!s.email)     missing.push('email');
+  if (!s.club)      missing.push('club_name');
   if (missing.length) return res.status(400).json({ error: 'Missing required fields', fields: missing });
 
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.email)) {
     return res.status(400).json({ error: 'Invalid email address' });
   }
   if (body.consent_email !== true) {
     return res.status(400).json({ error: 'Email consent is required to join the waitlist' });
   }
+  if (!ROLES.includes(s.role)) s.role = '';
 
   const fields = {
     [F.event]:      [EVENT_ID],
-    [F.firstName]:  firstName,
-    [F.lastName]:   lastName,
-    [F.email]:      email,
-    [F.club]:       club,
-    [F.ageGroups]:  pick(body.age_groups, AGE_GROUPS),
-    [F.genders]:    pick(body.genders, GENDERS),
+    [F.firstName]:  s.firstName,
+    [F.lastName]:   s.lastName,
+    [F.email]:      s.email,
+    [F.club]:       s.club,
+    [F.ageGroups]:  s.ageGroups,
+    [F.genders]:    s.genders,
     [F.optInEmail]: true,
-    [F.optInSms]:   body.consent_sms === true,
+    [F.optInSms]:   s.optInSms,
   };
+  if (s.phone) fields[F.phone] = s.phone;
+  if (s.role)  fields[F.role]  = s.role;
 
-  const phone = str(body.phone, 40);
-  if (phone) fields[F.phone] = phone;
-  if (ROLES.includes(role)) fields[F.role] = role;
-
+  let recordId = null;
   try {
     const r = await fetch(`${AIRTABLE_API}/${BASE_ID}/${TABLE_ID}`, {
       method: 'POST',
@@ -106,10 +215,40 @@ module.exports = async (req, res) => {
       console.error('Airtable rejected waitlist write', r.status, await r.text());
       return res.status(502).json({ error: 'Could not save signup' });
     }
-
-    return res.status(200).json({ ok: true });
+    const saved = await r.json();
+    recordId = saved?.records?.[0]?.id || null;
   } catch (err) {
     console.error('Airtable request failed', err);
     return res.status(502).json({ error: 'Could not save signup' });
   }
+
+  /* The signup is already saved. From here nothing may fail the request: an
+   * error now would show the visitor a failure for a signup we hold, and they
+   * would submit again. Mail problems are logged and swallowed. */
+  const apiKey = process.env.MAILERSEND_API_KEY;
+  if (apiKey) {
+    const team = (process.env.TEAM_NOTIFY_EMAILS || '')
+      .split(',').map(e => e.trim()).filter(Boolean);
+
+    const jobs = [];
+
+    const conf = confirmationEmail(s);
+    jobs.push(sendEmail({
+      apiKey, to: [{ email: s.email, name: `${s.firstName} ${s.lastName}` }],
+      replyTo: REPLY_TO, ...conf,
+    }).catch(e => console.error('Confirmation email failed', s.email, e.message)));
+
+    if (team.length) {
+      const note = teamEmail(s, recordId);
+      jobs.push(sendEmail({
+        apiKey, to: team.map(email => ({ email })), replyTo: s.email, ...note,
+      }).catch(e => console.error('Team notification failed', e.message)));
+    }
+
+    await Promise.allSettled(jobs);
+  } else {
+    console.warn('MAILERSEND_API_KEY not set — signup saved, no mail sent');
+  }
+
+  return res.status(200).json({ ok: true });
 };

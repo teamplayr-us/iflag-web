@@ -30,9 +30,11 @@ confirmation email says "Questions? Reply to this email," which routes there.
 MailerSend verification authorises *sending* only; inbound needs its own MX.
 Raised 2026-09-04, unresolved.
 
-### 3. Team notification recipients unknown
+### 3. ~~Team notification recipients unknown~~ — RESOLVED 2026-09-10
 
-`TEAM_NOTIFY_EMAILS` is unset. Nobody internal is notified of signups.
+Recipients confirmed: `allen@5v5sports.com`, `monty@5v5sports.com`. The domain
+routes to Microsoft 365 (verified MX), so these deliver. Still to be set as
+`TEAM_NOTIFY_EMAILS` in Vercel — see OPERATIONS.md.
 
 ### 4. Brand gold `#FFD54B` unexplained
 
@@ -101,3 +103,4 @@ Appears on the social card, nowhere in the palette. See BRAND.md.
 | 2026-09-08 | MailerSend verified on `iflagyouth.com` (account under review) |
 | 2026-09-10 | Confirmation + team notification emails built |
 | 2026-09-10 | Site Playbook adopted; these four docs created |
+| 2026-09-10 | Team notifications go to `allen@5v5sports.com` and `monty@5v5sports.com` |

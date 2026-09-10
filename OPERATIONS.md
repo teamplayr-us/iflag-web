@@ -102,14 +102,17 @@ It does correctly use a light body and a system font stack.
 |---|---|---|
 | `AIRTABLE_TOKEN` | **Yes** | 500; no signup saved. **Set 2026-09-04** |
 | `MAILERSEND_API_KEY` | No | Signups save, no mail, warning logged. **Not set** |
-| `TEAM_NOTIFY_EMAILS` | No | No team notification. Comma-separated. **Not set** |
+| `TEAM_NOTIFY_EMAILS` | No | No team notification. Comma-separated. Value confirmed 2026-09-10 (below); **not yet set in Vercel** |
 | `MAIL_FROM` | No | Defaults to `waitlist@iflagyouth.com` |
 
 Env vars apply at build time — **redeploy after changing any of them.**
 
 ## Manual steps not yet done
 
-1. Set `MAILERSEND_API_KEY` and `TEAM_NOTIFY_EMAILS`, then redeploy
+1. Set `MAILERSEND_API_KEY`, and `TEAM_NOTIFY_EMAILS` to:
+   `allen@5v5sports.com,monty@5v5sports.com`
+   then redeploy. **Merge the email rebuild first** — production still runs the
+   pre-playbook template and `/email/header.png` 404s until it lands.
 2. Add **MX records** so `support@iflagyouth.com` can receive (escalation #2)
 3. Point `iflagyouth.org` + `www` at Vercel as redirects to the `.com`
 4. Remove the stale MailerSend SPF from `iflagyouth.org`

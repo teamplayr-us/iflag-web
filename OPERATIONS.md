@@ -110,7 +110,7 @@ Env vars apply at build time — **redeploy after changing any of them.**
 ## Manual steps not yet done
 
 1. Set `MAILERSEND_API_KEY`, and `TEAM_NOTIFY_EMAILS` to:
-   `allen@5v5sports.com,monty@5v5sports.com`
+   `allen@5v5sports.com,monty.holloway@5v5sports.com`
    then redeploy. **Merge the email rebuild first** — production still runs the
    pre-playbook template and `/email/header.png` 404s until it lands.
 2. Add **MX records** so `support@iflagyouth.com` can receive (escalation #2)
